@@ -1,4 +1,5 @@
 .idea
 models
+gfpgan
 temp
 __pycache__
