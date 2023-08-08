@@ -19,7 +19,7 @@ import roop.globals
 import roop.metadata
 import roop.ui as ui
 from roop.predictor import predict_image, predict_video
-from roop.processors.frame.core import get_frame_processors_modules
+from roop.processors.frame.core import get_frame_processors_modules,get_processors_by_mode
 from roop.utilities import has_image_extension, is_image, is_video, detect_fps, create_video, extract_frames, get_temp_frame_paths, restore_audio, create_temp, move_temp, clean_temp, normalize_output_path
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='insightface')
@@ -129,6 +129,9 @@ def update_status(message: str, scope: str = 'ROOP.CORE') -> None:
 
 
 def start() -> None:
+    print(roop.globals.source_path)
+    print(roop.globals.target_path)
+    print(roop.globals.output_path)
     for frame_processor in get_frame_processors_modules(roop.globals.frame_processors):
         if not frame_processor.pre_start():
             return
@@ -218,3 +221,27 @@ def run() -> None:
     else:
         window = ui.init(start, destroy)
         window.mainloop()
+
+##################################################### web ##########################################################
+def swap_face_with_image_for_web(mode, face_img_path, target_path, output_path):
+    print(mode)
+    print(face_img_path)
+    print(target_path)
+    print(output_path)
+    for frame_processor in get_processors_by_mode(mode):
+        if not frame_processor.pre_start_for_web(face_img_path, target_path):
+            return 'pre start fail'
+    # process image to image
+    if has_image_extension(target_path):
+        if predict_image(target_path):
+            return '按照法律法规要求，请上传合规的图片'
+        shutil.copy2(target_path, output_path)
+        # process frame
+        for frame_processor in get_processors_by_mode(mode):
+            frame_processor.process_image(face_img_path, output_path, output_path)
+            # frame_processor.post_process()
+        # validate image
+        if is_image(output_path):
+            return '200'
+        else:
+            return '未知失败，请稍后重试'

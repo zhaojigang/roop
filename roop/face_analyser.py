@@ -4,7 +4,7 @@ import insightface
 import numpy
 
 import roop.globals
-from roop.typing import Frame, Face
+from roop.roop_typing import Frame, Face
 
 FACE_ANALYSER = None
 THREAD_LOCK = threading.Lock()

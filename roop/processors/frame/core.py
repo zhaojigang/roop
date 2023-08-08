@@ -7,6 +7,7 @@ from queue import Queue
 from types import ModuleType
 from typing import Any, List, Callable
 from tqdm import tqdm
+import roop.globals
 
 import roop
 
@@ -21,6 +22,18 @@ FRAME_PROCESSORS_INTERFACE = [
     'post_process'
 ]
 
+def get_processors_by_mode(mode):
+    return roop.globals.MODE_TO_PROCESSORS.get(mode)
+
+def pre_load_processor_modules():
+    face_swapper = load_frame_processor_module("face_swapper")
+    face_enhancer = load_frame_processor_module("face_enhancer")
+    roop.globals.FRAME_PROCESSORS_COMMON_MODULES.append(face_swapper)
+    roop.globals.FRAME_PROCESSORS_ENHANCE_MODULES.append(face_swapper)
+    roop.globals.FRAME_PROCESSORS_ENHANCE_MODULES.append(face_enhancer)
+
+    roop.globals.MODE_TO_PROCESSORS["common"] = roop.globals.FRAME_PROCESSORS_COMMON_MODULES
+    roop.globals.MODE_TO_PROCESSORS["enhancer"] = roop.globals.FRAME_PROCESSORS_ENHANCE_MODULES
 
 def load_frame_processor_module(frame_processor: str) -> Any:
     try:

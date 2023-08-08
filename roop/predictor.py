@@ -4,7 +4,7 @@ import opennsfw2
 from PIL import Image
 from keras import Model
 
-from roop.typing import Frame
+from roop.roop_typing import Frame
 
 PREDICTOR = None
 THREAD_LOCK = threading.Lock()

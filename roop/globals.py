@@ -1,4 +1,5 @@
 from typing import List, Optional
+from types import ModuleType
 
 source_path: Optional[str] = None
 target_path: Optional[str] = None
@@ -20,3 +21,8 @@ max_memory: Optional[int] = None
 execution_providers: List[str] = []
 execution_threads: Optional[int] = None
 log_level: str = 'error'
+
+FRAME_PROCESSORS_COMMON_MODULES: List[ModuleType] = []
+FRAME_PROCESSORS_ENHANCE_MODULES: List[ModuleType] = []
+
+MODE_TO_PROCESSORS = {}

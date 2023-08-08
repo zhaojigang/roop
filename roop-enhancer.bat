@@ -7,7 +7,7 @@ D:
 cd D:\project\roop
 
 echo 'roop starting...'
-python run.py --execution-provider cuda --frame-processor face_swapper face_enhancer
+python run.py --execution-provider cuda --frame-processor face_swapper face_enhancer  --similar-face-distance 1.5
 echo 'roop start success...'
 
 pause

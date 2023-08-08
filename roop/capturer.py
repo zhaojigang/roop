@@ -1,7 +1,7 @@
 from typing import Optional
 import cv2
 
-from roop.typing import Frame
+from roop.roop_typing import Frame
 
 
 def get_video_frame(video_path: str, frame_number: int = 0) -> Optional[Frame]:
