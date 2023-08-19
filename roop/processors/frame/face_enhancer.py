@@ -9,6 +9,7 @@ from roop.core import update_status
 from roop.face_analyser import get_many_faces
 from roop.roop_typing import Frame, Face
 from roop.utilities import conditional_download, resolve_relative_path, is_image, is_video
+from roop.common.biz_exception import BizException
 
 FACE_ENHANCER = None
 THREAD_SEMAPHORE = threading.Semaphore()
@@ -53,11 +54,10 @@ def pre_start() -> bool:
         return False
     return True
 
-def pre_start_for_web(source_path, target_path) -> bool:
+
+def pre_start_for_web(source_path, target_path):
     if not is_image(target_path) and not is_video(target_path):
-        # update_status('Select an image or video for target path.', NAME)
-        return False
-    return True
+        raise BizException(400, "上传的文件不是图片或者视频")
 
 
 def post_process() -> None:

@@ -2,6 +2,7 @@
 
 import os
 import sys
+
 # single thread doubles cuda performance - needs to be set before torch import
 if any(arg.startswith('--execution-provider') for arg in sys.argv):
     os.environ['OMP_NUM_THREADS'] = '1'
@@ -19,8 +20,10 @@ import roop.globals
 import roop.metadata
 import roop.ui as ui
 from roop.predictor import predict_image, predict_video
-from roop.processors.frame.core import get_frame_processors_modules,get_processors_by_mode
-from roop.utilities import has_image_extension, is_image, is_video, detect_fps, create_video, extract_frames, get_temp_frame_paths, restore_audio, create_temp, move_temp, clean_temp, normalize_output_path
+from roop.processors.frame.core import get_frame_processors_modules, get_processors_by_mode
+from roop.utilities import has_image_extension, is_image, is_video, detect_fps, create_video, extract_frames, \
+    get_temp_frame_paths, restore_audio, create_temp, move_temp, clean_temp, normalize_output_path
+from roop.common.biz_exception import BizException
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='insightface')
 warnings.filterwarnings('ignore', category=UserWarning, module='torchvision')
@@ -32,28 +35,40 @@ def parse_args() -> None:
     program.add_argument('-s', '--source', help='select an source image', dest='source_path')
     program.add_argument('-t', '--target', help='select an target image or video', dest='target_path')
     program.add_argument('-o', '--output', help='select output file or directory', dest='output_path')
-    program.add_argument('--frame-processor', help='frame processors (choices: face_swapper, face_enhancer, ...)', dest='frame_processor', default=['face_swapper'], nargs='+')
+    program.add_argument('--frame-processor', help='frame processors (choices: face_swapper, face_enhancer, ...)',
+                         dest='frame_processor', default=['face_swapper'], nargs='+')
     program.add_argument('--keep-fps', help='keep target fps', dest='keep_fps', action='store_true')
     program.add_argument('--keep-frames', help='keep temporary frames', dest='keep_frames', action='store_true')
     program.add_argument('--skip-audio', help='skip target audio', dest='skip_audio', action='store_true')
     program.add_argument('--many-faces', help='process every face', dest='many_faces', action='store_true')
-    program.add_argument('--reference-face-position', help='position of the reference face', dest='reference_face_position', type=int, default=0)
-    program.add_argument('--reference-frame-number', help='number of the reference frame', dest='reference_frame_number', type=int, default=0)
-    program.add_argument('--similar-face-distance', help='face distance used for recognition', dest='similar_face_distance', type=float, default=0.85)
-    program.add_argument('--temp-frame-format', help='image format used for frame extraction', dest='temp_frame_format', default='png', choices=['jpg', 'png'])
-    program.add_argument('--temp-frame-quality', help='image quality used for frame extraction', dest='temp_frame_quality', type=int, default=0, choices=range(101), metavar='[0-100]')
-    program.add_argument('--output-video-encoder', help='encoder used for the output video', dest='output_video_encoder', default='libx264', choices=['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc'])
-    program.add_argument('--output-video-quality', help='quality used for the output video', dest='output_video_quality', type=int, default=35, choices=range(101), metavar='[0-100]')
+    program.add_argument('--reference-face-position', help='position of the reference face',
+                         dest='reference_face_position', type=int, default=0)
+    program.add_argument('--reference-frame-number', help='number of the reference frame',
+                         dest='reference_frame_number', type=int, default=0)
+    program.add_argument('--similar-face-distance', help='face distance used for recognition',
+                         dest='similar_face_distance', type=float, default=0.85)
+    program.add_argument('--temp-frame-format', help='image format used for frame extraction', dest='temp_frame_format',
+                         default='png', choices=['jpg', 'png'])
+    program.add_argument('--temp-frame-quality', help='image quality used for frame extraction',
+                         dest='temp_frame_quality', type=int, default=0, choices=range(101), metavar='[0-100]')
+    program.add_argument('--output-video-encoder', help='encoder used for the output video',
+                         dest='output_video_encoder', default='libx264',
+                         choices=['libx264', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'hevc_nvenc'])
+    program.add_argument('--output-video-quality', help='quality used for the output video',
+                         dest='output_video_quality', type=int, default=35, choices=range(101), metavar='[0-100]')
     program.add_argument('--max-memory', help='maximum amount of RAM in GB', dest='max_memory', type=int)
-    program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)', dest='execution_provider', default=['cpu'], choices=suggest_execution_providers(), nargs='+')
-    program.add_argument('--execution-threads', help='number of execution threads', dest='execution_threads', type=int, default=suggest_execution_threads())
+    program.add_argument('--execution-provider', help='available execution provider (choices: cpu, ...)',
+                         dest='execution_provider', default=['cpu'], choices=suggest_execution_providers(), nargs='+')
+    program.add_argument('--execution-threads', help='number of execution threads', dest='execution_threads', type=int,
+                         default=suggest_execution_threads())
     program.add_argument('-v', '--version', action='version', version=f'{roop.metadata.name} {roop.metadata.version}')
 
     args = program.parse_args()
 
     roop.globals.source_path = args.source_path
     roop.globals.target_path = args.target_path
-    roop.globals.output_path = normalize_output_path(roop.globals.source_path, roop.globals.target_path, args.output_path)
+    roop.globals.output_path = normalize_output_path(roop.globals.source_path, roop.globals.target_path,
+                                                     args.output_path)
     roop.globals.headless = roop.globals.source_path is not None and roop.globals.target_path is not None and roop.globals.output_path is not None
     roop.globals.frame_processors = args.frame_processor
     roop.globals.keep_fps = args.keep_fps
@@ -77,7 +92,9 @@ def encode_execution_providers(execution_providers: List[str]) -> List[str]:
 
 
 def decode_execution_providers(execution_providers: List[str]) -> List[str]:
-    return [provider for provider, encoded_execution_provider in zip(onnxruntime.get_available_providers(), encode_execution_providers(onnxruntime.get_available_providers()))
+    return [provider for provider, encoded_execution_provider in zip(onnxruntime.get_available_providers(),
+                                                                     encode_execution_providers(
+                                                                         onnxruntime.get_available_providers()))
             if any(execution_provider in encoded_execution_provider for execution_provider in execution_providers)]
 
 
@@ -222,26 +239,20 @@ def run() -> None:
         window = ui.init(start, destroy)
         window.mainloop()
 
+
 ##################################################### web ##########################################################
 def swap_face_with_image_for_web(mode, face_img_path, target_path, output_path):
-    print(mode)
-    print(face_img_path)
-    print(target_path)
-    print(output_path)
     for frame_processor in get_processors_by_mode(mode):
-        if not frame_processor.pre_start_for_web(face_img_path, target_path):
-            return 'pre start fail'
+        frame_processor.pre_start_for_web(face_img_path, target_path)
     # process image to image
     if has_image_extension(target_path):
         if predict_image(target_path):
-            return '按照法律法规要求，请上传合规的图片'
+            raise BizException(400, '按照法律法规要求，请上传合规的图片')
         shutil.copy2(target_path, output_path)
         # process frame
         for frame_processor in get_processors_by_mode(mode):
             frame_processor.process_image(face_img_path, output_path, output_path)
             # frame_processor.post_process()
         # validate image
-        if is_image(output_path):
-            return '200'
-        else:
-            return '未知失败，请稍后重试'
+        if not is_image(output_path):
+            raise BizException(400, "处理结果不是图片")

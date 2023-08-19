@@ -10,6 +10,7 @@ from roop.face_analyser import get_one_face, get_many_faces, find_similar_face
 from roop.face_reference import get_face_reference, set_face_reference, clear_face_reference
 from roop.roop_typing import Face, Frame
 from roop.utilities import conditional_download, resolve_relative_path, is_image, is_video
+from roop.common.biz_exception import BizException
 
 FACE_SWAPPER = None
 THREAD_LOCK = threading.Lock()
@@ -34,7 +35,8 @@ def clear_face_swapper() -> None:
 
 def pre_check() -> bool:
     download_directory_path = resolve_relative_path('../models')
-    conditional_download(download_directory_path, ['https://huggingface.co/henryruhs/roop/resolve/main/inswapper_128.onnx'])
+    conditional_download(download_directory_path,
+                         ['https://huggingface.co/henryruhs/roop/resolve/main/inswapper_128.onnx'])
     return True
 
 
@@ -50,17 +52,15 @@ def pre_start() -> bool:
         return False
     return True
 
-def pre_start_for_web(source_path, target_path) -> bool:
+
+def pre_start_for_web(source_path, target_path):
     if not is_image(source_path):
-        # update_status('Select an image for source path.', NAME)
-        return False
+        raise BizException(400, "输入文件不是图片")
     elif not get_one_face(cv2.imread(source_path)):
-        # update_status('No face in source path detected.', NAME)
-        return False
+        raise BizException(400, "上传的文件检测不到脸部，请换一张图片重试")
     if not is_image(target_path) and not is_video(target_path):
-        # update_status('Select an image or video for target path.', NAME)
-        return False
-    return True
+        raise BizException(400, "上传的文件不是图片或者视频")
+    # TODO 引入图片相似度判断
 
 
 def post_process() -> None:
@@ -101,7 +101,8 @@ def process_image(source_path: str, target_path: str, output_path: str) -> None:
     print(roop.globals.reference_face_position)
     source_face = get_one_face(cv2.imread(source_path))
     target_frame = cv2.imread(target_path)
-    reference_face = None if roop.globals.many_faces else get_one_face(target_frame, roop.globals.reference_face_position)
+    reference_face = None if roop.globals.many_faces else get_one_face(target_frame,
+                                                                       roop.globals.reference_face_position)
     result = process_frame(source_face, reference_face, target_frame)
     cv2.imwrite(output_path, result)
 
