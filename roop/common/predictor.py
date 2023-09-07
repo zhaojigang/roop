@@ -4,14 +4,12 @@ import opennsfw2
 from PIL import Image
 from keras import Model
 
-from roop.roop_typing import Frame
-
 PREDICTOR = None
 THREAD_LOCK = threading.Lock()
 MAX_PROBABILITY = 0.85
 
 
-def get_predictor() -> Model:
+def get_predictor():
     global PREDICTOR
 
     with THREAD_LOCK:
@@ -20,13 +18,13 @@ def get_predictor() -> Model:
     return PREDICTOR
 
 
-def clear_predictor() -> None:
+def clear_predictor():
     global PREDICTOR
 
     PREDICTOR = None
 
 
-def predict_frame(target_frame: Frame) -> bool:
+def predict_frame(target_frame):
     # image = Image.fromarray(target_frame)
     # image = opennsfw2.preprocess_image(image, opennsfw2.Preprocessing.YAHOO)
     # views = numpy.expand_dims(image, axis=0)
@@ -35,12 +33,12 @@ def predict_frame(target_frame: Frame) -> bool:
     return False
 
 
-def predict_image(target_path: str) -> bool:
+def predict_image(target_path):
     # return opennsfw2.predict_image(target_path) > MAX_PROBABILITY
     return False
 
 
-def predict_video(target_path: str) -> bool:
+def predict_video(target_path):
     # _, probabilities = opennsfw2.predict_video_frames(video_path=target_path, frame_interval=100)
     # return any(probability > MAX_PROBABILITY for probability in probabilities)
     return False
