@@ -13,7 +13,7 @@ def get_face_analyser():
 
     with THREAD_LOCK:
         if FACE_ANALYSER is None:
-            root = resolve_relative_path('../../models')
+            root = resolve_relative_path('../../')
             # cpu:CPUExecutionProvider  gpu:CUDAExecutionProvider
             FACE_ANALYSER = insightface.app.FaceAnalysis(name='buffalo_l', root=root, providers='CUDAExecutionProvider')
             FACE_ANALYSER.prepare(ctx_id=0)
