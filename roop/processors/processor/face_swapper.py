@@ -4,7 +4,7 @@ import threading
 
 from roop.processors.processor.face_analyser import get_one_face
 from roop.common.helper import resolve_relative_path
-from roop.processors.concurrent import multi_process_frame
+from roop.processors.concurrent import multi_process_frame_wrapper
 
 FACE_SWAPPER = None
 THREAD_LOCK = threading.Lock()
@@ -48,12 +48,14 @@ def process_image(source_path, target_path, output_path):
 
 
 def process_video(source_path, temp_frame_paths):
-    multi_process_frame(source_path, temp_frame_paths, process_frames)
+    multi_process_frame_wrapper(source_path, temp_frame_paths, process_frames)
 
 
-def process_frames(source_path, temp_frame_paths):
+def process_frames(source_path, temp_frame_paths, update_tqdm):
     source_face = get_one_face(cv2.imread(source_path))
     for temp_frame_path in temp_frame_paths:
         temp_frame = cv2.imread(temp_frame_path)
         result = process_frame(source_face, get_one_face(temp_frame), temp_frame)
         cv2.imwrite(temp_frame_path, result)
+        if update_tqdm:
+            update_tqdm()
