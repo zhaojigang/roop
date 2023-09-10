@@ -1,6 +1,5 @@
 import threading
 import insightface
-from roop.common.biz_exception import BizException
 from roop.common.helper import resolve_relative_path
 
 FACE_ANALYSER = None
@@ -21,11 +20,15 @@ def get_face_analyser():
 
 
 def get_one_face(frame):
-    return get_many_faces(frame)[0]
+    many_face = get_many_faces(frame)
+    if many_face:
+        return get_many_faces(frame)[0]
+    else:
+        return None
 
 
 def get_many_faces(frame):
     try:
         return get_face_analyser().get(frame)
     except ValueError:
-        raise BizException(400, '当前图片未检测到脸部，请重新上传图片')
+        return None

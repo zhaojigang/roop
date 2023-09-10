@@ -5,6 +5,7 @@ import threading
 from roop.processors.processor.face_analyser import get_one_face
 from roop.common.helper import resolve_relative_path
 from roop.processors.concurrent import multi_process_frame_wrapper
+from roop.common.biz_exception import BizException
 
 FACE_SWAPPER = None
 THREAD_LOCK = threading.Lock()
@@ -32,15 +33,22 @@ def post_process():
 
 
 def process_frame(source_face, target_face, temp_frame):
-    return get_face_swapper().get(temp_frame, target_face, source_face, paste_back=True)
+    if source_face is None or target_face is None:
+        return temp_frame
+    else:
+        return get_face_swapper().get(temp_frame, target_face, source_face, paste_back=True)
 
 
 def process_image(source_path, target_path, output_path):
     # 从 origin_file 中识别脸部
     source_face = get_one_face(cv2.imread(source_path))
+    if source_face is None:
+        raise BizException(400, "检测不到脸部")
     target_frame = cv2.imread(target_path)
     # 从 target_file 中识别脸部
     reference_face = get_one_face(target_frame)
+    if reference_face is None:
+        raise BizException(400, "检测不到脸部")
     # 换脸
     result = process_frame(source_face, reference_face, target_frame)
     # 将换脸结果写入 output_file
